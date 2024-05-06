@@ -115,6 +115,14 @@ class FlowerServer:
         )
         self.finish()
 
+        self.ipinput.pack(padx=10, pady=12)
+        self.button.pack(padx=10, pady=12)
+        self.log.pack_forget()
+        self.scroll.pack_forget()
+        self.progress.pack_forget()
+
+        self.th_server = threading.Thread(target=self.start_server)
+
     def update_log(self):
         f = open("server.txt", "rt")
         text = ""
@@ -131,6 +139,7 @@ class FlowerServer:
             self.log.configure(text=text)
             line = f.readline()
         f.close()
+        self.th_log = threading.Thread(target=self.update_log)
 
     def start_gui(self):
         self.frame.pack(padx=20, pady=20, fill="both", expand=True)

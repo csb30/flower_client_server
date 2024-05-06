@@ -23,11 +23,12 @@ import threading
 
 DEVICE = torch.device("cpu")
 
-LOGFILE="client"+sys.argv[1]+".txt"
+LOGFILE = "client" + sys.argv[1] + ".txt"
 
 f = open(LOGFILE, "wt")
 f.close()
 fl.common.logger.configure(identifier="client", filename=LOGFILE)
+
 
 class Net(nn.Module):
     def __init__(self) -> None:
@@ -127,8 +128,6 @@ class FlowerClient(fl.client.NumPyClient):
         return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
 
-
-
 # Start Flower client
 
 class FlowerClientGUI:
@@ -162,6 +161,7 @@ class FlowerClientGUI:
 
         self.ipinput = ctk.CTkTextbox(self.frame, height=10)
         self.ipinput.insert(ctk.END, "localhost:8500")
+
         self.button = ctk.CTkButton(self.frame, text="Loading datasets...",
                                     command=lambda: [self.th_client.start(), self.th_log.start()], state="disabled")
 
@@ -169,8 +169,8 @@ class FlowerClientGUI:
         th_load.start()
 
     def start_client(self):
-        #self.status.pack(padx=10, pady=12)
-        #self.progress.pack(padx=10, pady=12)
+        # self.status.pack(padx=10, pady=12)
+        # self.progress.pack(padx=10, pady=12)
         self.scroll.pack(padx=20, pady=20, fill="both", expand=True)
         self.log.pack(padx=10, pady=12, anchor="w")
 
@@ -178,11 +178,18 @@ class FlowerClientGUI:
         ip = self.ipinput.get("0.0", ctk.END)
         self.ipinput.pack_forget()
 
-        fl.client.start_client(
-            server_address=ip,
-            client=self.client_fn(self.clientnum, DEVICE).to_client(),
-            grpc_max_message_length=1024 * 1024 * 1024
-        )
+        try:
+            fl.client.start_client(
+                server_address=ip,
+                client=self.client_fn(self.clientnum, DEVICE).to_client(),
+                grpc_max_message_length=1024 * 1024 * 1024
+            )
+        finally:
+            self.ipinput.pack(padx=10, pady=12)
+            self.button.pack(padx=10, pady=12)
+            self.log.pack_forget()
+            self.scroll.pack_forget()
+            self.th_client = threading.Thread(target=self.start_client)
 
     def start_gui(self):
         self.frame.pack(padx=20, pady=20, fill="both", expand=True)
@@ -248,6 +255,7 @@ class FlowerClientGUI:
             self.log.configure(text=text)
             line = f.readline()
         f.close()
+        self.th_log = threading.Thread(target=self.update_log)
 
 
 client = FlowerClientGUI(int(sys.argv[1]))

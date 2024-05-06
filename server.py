@@ -28,13 +28,57 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
             results,
             failures
     ):
+        self.update_status(rnd)
         aggregated_weights = super().aggregate_fit(rnd, results, failures)
         if aggregated_weights is not None:
             # Save aggregated_weights
             print(f"Saving round {rnd} aggregated_weights...")
             np.savez(f"round-{rnd}-weights.npz", *aggregated_weights)
-            self.update_status(rnd)
         return aggregated_weights
+
+    def update_status(self, rnd):
+        text = "Round " + str(rnd) + " / " + str(self.rounds)
+        self.label.configure(text=text)
+        x = rnd / self.rounds
+        self.progress.set(x)
+
+class FedAvgGUI(fl.server.strategy.FedAvg):
+    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3):
+        super().__init__(on_fit_config_fn=fit_config)
+        self.label = label
+        self.rounds = rounds
+        self.progress = progress
+
+    def aggregate_fit(
+            self,
+            rnd,
+            results,
+            failures
+    ):
+        self.update_status(rnd)
+        return super().aggregate_fit(rnd, results, failures)
+
+    def update_status(self, rnd):
+        text = "Round " + str(rnd) + " / " + str(self.rounds)
+        self.label.configure(text=text)
+        x = rnd / self.rounds
+        self.progress.set(x)
+
+class FedAdamGUI(fl.server.strategy.FedAdagrad):
+    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3):
+        super().__init__(on_fit_config_fn=fit_config)
+        self.label = label
+        self.rounds = rounds
+        self.progress = progress
+
+    def aggregate_fit(
+            self,
+            rnd,
+            results,
+            failures
+    ):
+        self.update_status(rnd)
+        return super().aggregate_fit(rnd, results, failures)
 
     def update_status(self, rnd):
         text = "Round " + str(rnd) + " / " + str(self.rounds)
@@ -57,6 +101,7 @@ def fit_config(server_round: int):
 
 class FlowerServer:
     def __init__(self):
+        self.strategy = None
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
@@ -85,7 +130,10 @@ class FlowerServer:
 
         self.history = flwr.server.History()
 
-        self.strategy = SaveModelStrategy(self.status, self.progress)
+        self.stratSTR = ctk.StringVar(self.root)
+        self.stratSTR.set("Select Strategy")
+        self.stratOPT = ctk.CTkOptionMenu(self.frame, variable=self.stratSTR, values=['SaveModelStrategy', 'FedAvgGUI', 'FedAdamGUI'])
+
         self.total_rounds = 3
 
     def finish(self):
@@ -104,9 +152,18 @@ class FlowerServer:
         self.button.pack_forget()
         ip = self.ipinput.get("0.0", ctk.END)
         self.ipinput.pack_forget()
+        self.stratOPT.pack_forget()
 
         self.status.configure(text="Waiting for results...")
         self.total_rounds = rounds
+
+        if self.stratSTR.get() == 'SaveModelStrategy':
+            self.strategy = SaveModelStrategy(self.status, self.progress)
+        elif self.stratSTR.get() == 'FedAdamGUI':
+            self.strategy = FedAdamGUI(self.status, self.progress)
+        else:
+            self.strategy = FedAvgGUI(self.status, self.progress)
+
         self.history = fl.server.start_server(
             server_address=ip,
             config=fl.server.ServerConfig(num_rounds=rounds),
@@ -116,6 +173,7 @@ class FlowerServer:
         self.finish()
 
         self.ipinput.pack(padx=10, pady=12)
+        self.stratOPT.pack(padx=10, pady=12)
         self.button.pack(padx=10, pady=12)
         self.log.pack_forget()
         self.scroll.pack_forget()
@@ -147,6 +205,7 @@ class FlowerServer:
         self.label.pack(padx=10, pady=12)
 
         self.ipinput.pack(padx=10, pady=12)
+        self.stratOPT.pack(padx=10, pady=12)
         self.button.pack(padx=10, pady=12)
 
         self.root.mainloop()

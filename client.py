@@ -96,7 +96,8 @@ class Net(nn.Module):
         self.load_state_dict(state_dict, strict=True)
 
     def get_parameters_n(self) -> List[np.ndarray]:
-        return [val.cpu().numpy() for _, val in self.state_dict().items()]
+        ret = [val.cpu().numpy() for _, val in self.state_dict().items()]
+        return ret
 
 
 # Define Flower client

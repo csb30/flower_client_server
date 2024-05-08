@@ -16,11 +16,11 @@ fl.common.logger.configure(identifier="server", filename="server.txt")
 
 
 class SaveModelStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3):
-        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config)
+    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3, init_param=None):
+        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config, initial_parameters=init_param)
         self.label = label
-        self.rounds = rounds
         self.progress = progress
+        self.rounds = rounds
 
     def aggregate_fit(
             self,
@@ -43,11 +43,11 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
         self.progress.set(x)
 
 class FedAvgGUI(fl.server.strategy.FedAvg):
-    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3):
-        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config)
+    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds = 3, init_param=None):
+        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config, initial_parameters=init_param)
         self.label = label
-        self.rounds = rounds
         self.progress = progress
+        self.rounds = rounds
 
     def aggregate_fit(
             self,
@@ -65,11 +65,11 @@ class FedAvgGUI(fl.server.strategy.FedAvg):
         self.progress.set(x)
 
 class FedAdamGUI(fl.server.strategy.FedAdagrad):
-    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3):
-        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config)
+    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds = 3, init_param=None):
+        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config, initial_parameters=init_param)
         self.label = label
-        self.rounds = rounds
         self.progress = progress
+        self.rounds = rounds
 
     def aggregate_fit(
             self,
@@ -179,11 +179,11 @@ class FlowerServer:
         self.status.configure(text="Waiting for results...")
 
         if self.stratSTR.get() == 'SaveModelStrategy':
-            self.strategy = SaveModelStrategy(self.status, self.progress)
+            self.strategy = SaveModelStrategy(self.status, self.progress, self.total_rounds)
         elif self.stratSTR.get() == 'FedAdamGUI':
-            self.strategy = FedAdamGUI(self.status, self.progress)
+            self.strategy = FedAdamGUI(self.status, self.progress, self.total_rounds)
         else:
-            self.strategy = FedAvgGUI(self.status, self.progress)
+            self.strategy = FedAvgGUI(self.status, self.progress, self.total_rounds)
 
         self.history = fl.server.start_server(
             server_address=ip,

@@ -7,97 +7,14 @@ import customtkinter as ctk
 import threading
 import time
 
+from strategies import *
+
 # https://github.com/PratikGarai/MNIST-Federated/tree/master/03_Non%20IID%20Demo
 from flwr.common import Parameters, Scalar
 
 f = open("server.txt", "wt")
 f.close()
 fl.common.logger.configure(identifier="server", filename="server.txt")
-
-
-class SaveModelStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds=3, init_param=None):
-        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config, initial_parameters=init_param)
-        self.label = label
-        self.progress = progress
-        self.rounds = rounds
-
-    def aggregate_fit(
-            self,
-            rnd,
-            results,
-            failures
-    ):
-        self.update_status(rnd)
-        aggregated_weights = super().aggregate_fit(rnd, results, failures)
-        if aggregated_weights is not None:
-            # Save aggregated_weights
-            print(f"Saving round {rnd} aggregated_weights...")
-            np.savez(f"round-{rnd}-weights.npz", *aggregated_weights)
-        return aggregated_weights
-
-    def update_status(self, rnd):
-        text = "Round " + str(rnd) + " / " + str(self.rounds)
-        self.label.configure(text=text)
-        x = rnd / self.rounds
-        self.progress.set(x)
-
-class FedAvgGUI(fl.server.strategy.FedAvg):
-    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds = 3, init_param=None):
-        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config, initial_parameters=init_param)
-        self.label = label
-        self.progress = progress
-        self.rounds = rounds
-
-    def aggregate_fit(
-            self,
-            rnd,
-            results,
-            failures
-    ):
-        self.update_status(rnd)
-        return super().aggregate_fit(rnd, results, failures)
-
-    def update_status(self, rnd):
-        text = "Round " + str(rnd) + " / " + str(self.rounds)
-        self.label.configure(text=text)
-        x = rnd / self.rounds
-        self.progress.set(x)
-
-class FedAdamGUI(fl.server.strategy.FedAdagrad):
-    def __init__(self, label: ctk.CTkLabel, progress: ctk.CTkProgressBar, rounds = 3, init_param=None):
-        super().__init__(on_fit_config_fn=fit_config, on_evaluate_config_fn=eval_config, initial_parameters=init_param)
-        self.label = label
-        self.progress = progress
-        self.rounds = rounds
-
-    def aggregate_fit(
-            self,
-            rnd,
-            results,
-            failures
-    ):
-        self.update_status(rnd)
-        return super().aggregate_fit(rnd, results, failures)
-
-    def update_status(self, rnd):
-        text = "Round " + str(rnd) + " / " + str(self.rounds)
-        self.label.configure(text=text)
-        x = rnd / self.rounds
-        self.progress.set(x)
-
-
-def fit_config(server_round: int):
-    config = {
-        "server_round": server_round,  # The current round of federated learning
-    }
-    return config
-
-def eval_config(server_round: int):
-    config = {
-        "server_round": server_round,  # The current round of federated learning
-    }
-    return config
 
 
 class FlowerServer:
@@ -140,7 +57,7 @@ class FlowerServer:
         self.stratSTR = ctk.StringVar(self.root)
         self.stratSTR.set("Select Strategy")
         self.stratOPT = ctk.CTkOptionMenu(self.frame, variable=self.stratSTR,
-                                          values=['SaveModelStrategy', 'FedAvgGUI', 'FedAdamGUI'])
+                                          values=['SaveModelStrategy', 'FedAvgGUI', 'FedAdamGUI', 'FedProxGUI'])
 
         self.rounds = ctk.CTkTextbox(self.frame, height=10)
         self.rounds.insert(ctk.END, "3")
@@ -182,6 +99,8 @@ class FlowerServer:
             self.strategy = SaveModelStrategy(self.status, self.progress, self.total_rounds)
         elif self.stratSTR.get() == 'FedAdamGUI':
             self.strategy = FedAdamGUI(self.status, self.progress, self.total_rounds)
+        elif self.stratSTR.get() == 'FedProxGUI':
+            self.strategy = FedProxGUI(self.status, self.progress, self.total_rounds)
         else:
             self.strategy = FedAvgGUI(self.status, self.progress, self.total_rounds)
 

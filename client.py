@@ -108,6 +108,7 @@ class FlowerClient(fl.client.NumPyClient):
         self.trainloader = trainloader
         self.valloader = valloader
         self.label = label
+        self.results = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
 
     def get_parameters(self, config=None):
         print(f"[Client {self.cid}] get_parameters")
@@ -130,8 +131,12 @@ class FlowerClient(fl.client.NumPyClient):
         self.net.set_parameters_n(parameters)
         loss, accuracy = self.net.test_n(self.valloader, DEVICE)
         server_round = config["server_round"]
+        self.results[server_round-1][0] = loss
+        self.results[server_round-1][1] = accuracy
         print(f"[Client {self.cid}] evaluate, config: {config}, loss: {loss}, accuracy: {accuracy}")
-        self.label.configure(text=f"Round {server_round}: Evaluating model \nloss: {loss}, \naccuracy: {accuracy}")
+        self.label.configure(text=f"Round\t| 1\t| 2\t| 3\n"
+                                  f"Loss\t| {self.results[0][0]:.2f}\t| {self.results[1][0]:.2f}\t| {self.results[2][0]:.2f}\n"
+                                  f"Acc\t| {self.results[0][1]:.2f}\t| {self.results[1][1]:.2f}\t| {self.results[2][1]:.2f}")
         return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
 
 

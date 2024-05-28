@@ -10,7 +10,6 @@ import numpy as np
 
 from strategies import *
 
-# https://github.com/PratikGarai/MNIST-Federated/tree/master/03_Non%20IID%20Demo
 from flwr.common import Parameters, Scalar
 
 f = open("server.txt", "wt")
@@ -68,6 +67,7 @@ class FlowerServer:
                                     command=lambda: [self.th_server.start(), self.th_log.start()])
 
     def finish(self):
+        #print stats after training finished
         text = ""
         for i in self.history.losses_distributed:
             round, loss = i
@@ -96,6 +96,7 @@ class FlowerServer:
 
         self.status.configure(text="Waiting for results...")
 
+        #set strategy
         if self.stratSTR.get() == 'SaveModelStrategy':
             self.strategy = SaveModelStrategy(self.status, self.progress, self.total_rounds)
         elif self.stratSTR.get() == 'FedAdamGUI':
@@ -127,6 +128,7 @@ class FlowerServer:
         self.th_server = threading.Thread(target=self.start_server)
 
     def update_log(self):
+        # updates the log UI element from log file
         f = open("server.txt", "rt")
         text = ""
         while self.th_server.is_alive():

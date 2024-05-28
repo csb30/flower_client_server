@@ -27,13 +27,13 @@ DEVICE = torch.device("cpu")
 
 LOGFILE = "client" + sys.argv[1] + ".txt"
 
-#delete log
+# delete previous log
 f = open(LOGFILE, "wt")
 f.close()
 fl.common.logger.configure(identifier="client", filename=LOGFILE)
 
 
-# Define Flower client
+# Define Flower client with GUI access
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid, net, trainloader, valloader, label: ctk.CTkLabel):
         self.cid = cid
@@ -64,8 +64,8 @@ class FlowerClient(fl.client.NumPyClient):
         self.net.set_parameters_n(parameters)
         loss, accuracy = self.net.test_n(self.valloader, DEVICE)
         server_round = config["server_round"]
-        self.results[server_round-1][0] = loss
-        self.results[server_round-1][1] = accuracy
+        self.results[server_round - 1][0] = loss
+        self.results[server_round - 1][1] = accuracy
         print(f"[Client {self.cid}] evaluate, config: {config}, loss: {loss}, accuracy: {accuracy}")
         self.label.configure(text=f"Round\t| 1\t| 2\t| 3\n"
                                   f"Loss\t| {self.results[0][0]:.2f}\t| {self.results[1][0]:.2f}\t| {self.results[2][0]:.2f}\n"
@@ -77,7 +77,7 @@ class FlowerClient(fl.client.NumPyClient):
 
 class FlowerClientGUI:
     def __init__(self, clientnum: int):
-        #init
+        # init
         self.trainloaders = None
         self.valloaders = None
         self.testloader = None
@@ -92,31 +92,30 @@ class FlowerClientGUI:
 
         self.frame = ctk.CTkFrame(self.root)
 
-        #title
+        # title
         title = "Flower Client " + str(clientnum) + " GUI"
         self.label = ctk.CTkLabel(self.frame, text=title, font=('Roboto', 24))
 
-        #status, progress
+        # status, progress
         self.status = ctk.CTkLabel(self.frame, text="Press Start", font=('Roboto', 15))
         self.progress = ctk.CTkProgressBar(self.frame)
         self.progress.set(0)
 
-        #log
+        # log
         self.scroll = ctk.CTkScrollableFrame(self.frame)
         self.log = ctk.CTkLabel(self.scroll, text="Press Start", font=('Roboto', 10), justify="left")
 
-        #threads
+        # threads
         self.th_client = threading.Thread(target=self.start_client)
         self.th_log = threading.Thread(target=self.update_log)
 
-        #options
+        # options
         self.ipinput = ctk.CTkTextbox(self.frame, height=10)
         self.ipinput.insert(ctk.END, "localhost:8500")
 
-        #button
+        # button
         self.button = ctk.CTkButton(self.frame, text="Loading datasets...",
                                     command=lambda: [self.th_client.start(), self.th_log.start()], state="disabled")
-
 
         th_load = threading.Thread(target=self.load_datasets)
         th_load.start()
@@ -127,7 +126,7 @@ class FlowerClientGUI:
         f.close()
 
         self.status.pack(padx=10, pady=12)
-        #self.progress.pack(padx=10, pady=12)
+        # self.progress.pack(padx=10, pady=12)
         self.scroll.pack(padx=20, pady=20, fill="both", expand=True)
         self.log.pack(padx=10, pady=12, anchor="w")
 
@@ -147,12 +146,13 @@ class FlowerClientGUI:
             print("AN error occured")
 
         finally:
+            #reset UI
             self.ipinput.pack(padx=10, pady=12)
             self.button.pack(padx=10, pady=12)
             self.log.pack_forget()
             self.scroll.pack_forget()
-            #self.status.pack_forget()
-            #self.progress.pack_forget()
+            # self.status.pack_forget()
+            # self.progress.pack_forget()
             self.th_client = threading.Thread(target=self.start_client)
 
     def start_gui(self):
@@ -195,6 +195,7 @@ class FlowerClientGUI:
         testset = fds.load_split("test").with_transform(apply_transforms)
         self.testloader = DataLoader(testset, batch_size=BATCH_SIZE)
 
+        #enable the start button
         self.button.configure(state="normal", text="Start client")
 
     def client_fn(self, cid, DEVICE, label) -> FlowerClient:
@@ -204,6 +205,7 @@ class FlowerClientGUI:
         return FlowerClient(cid, net, trainloader, valloader, label)
 
     def update_log(self):
+        #updates the log UI element from log file
         f = open(LOGFILE, "rt")
         text = ""
         while self.th_client.is_alive():
